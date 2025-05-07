@@ -1,0 +1,129 @@
+#define START_PIN 53
+#define NUM_OF_VALUES_FROM_PROCESSING 2  //0 Game Over, 1 Time
+
+int processing_values[NUM_OF_VALUES_FROM_PROCESSING];
+int leaderboard[10];
+
+bool PREV_STATE = LOW;
+bool sending = false;
+void setup() {
+  pinMode(START_PIN, INPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  bool CURR_STATE = digitalRead(START_PIN);
+  // to send values to Processing assign the values you want to send
+  // this is an example:
+  if (PREV_STATE == LOW && CURR_STATE == HIGH) {
+    sending = true;
+  }
+  PREV_STATE = CURR_STATE;
+
+  if (sending) {
+    int sensor0 = digitalRead(2);
+    int sensor1 = digitalRead(3);
+    int sensor2 = digitalRead(4);
+    int sensor3 = digitalRead(5);
+
+    int sensor4 = digitalRead(9);
+    int sensor5 = digitalRead(8);
+    int sensor6 = digitalRead(7);
+    int sensor7 = digitalRead(6);
+
+    int sensor8 = digitalRead(12);
+    int sensor9 = digitalRead(13);
+    int sensor10 = digitalRead(11);
+    int sensor11 = digitalRead(10);
+
+    int sensor12 = digitalRead(26);
+    int sensor13 = digitalRead(28);
+    int sensor14 = digitalRead(24);
+    int sensor15 = digitalRead(22);
+
+    // send the values keeping this format
+    Serial.print(sensor0);
+    Serial.print(",");  // put comma between sensor values
+    Serial.print(sensor1);
+    Serial.print(",");
+    Serial.print(sensor2);
+    Serial.print(",");
+    Serial.print(sensor3);
+
+    Serial.print(",");
+    Serial.print(sensor4);
+    Serial.print(",");
+    Serial.print(sensor5);
+    Serial.print(",");
+    Serial.print(sensor6);
+    Serial.print(",");
+    Serial.print(sensor7);
+
+    Serial.print(",");
+    Serial.print(sensor8);
+    Serial.print(",");
+    Serial.print(sensor9);
+    Serial.print(",");
+    Serial.print(sensor10);
+    Serial.print(",");
+    Serial.print(sensor11);
+
+    Serial.print(",");
+    Serial.print(sensor12);
+    Serial.print(",");
+    Serial.print(sensor13);
+    Serial.print(",");
+    Serial.print(sensor14);
+    Serial.print(",");
+    Serial.print(sensor15);
+
+    Serial.println();  // add linefeed after sending the last sensor value
+
+    // too fast communication might cause some latency in Processing
+    // this delay resolves the issue
+    delay(20);
+  }
+  // end of example sending values
+
+  getSerialData();
+
+  if(processing_values[0] == 1) {
+    sending = false;
+  }
+}
+
+void getSerialData() {
+  static int tempValue = 0;  // the "static" makes the local variable retain its value between calls of this function
+  static int tempSign = 1;
+  static int valueIndex = 0;
+
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c >= '0' && c <= '9') {
+      // received a digit:
+      // multiply the current value by 10, and add the character (converted to a number) as the last digit
+      tempValue = tempValue * 10 + (c - '0');
+    } else if (c == '-') {
+      // received a minus sign:
+      // make a note to multiply the final value by -1
+      tempSign = -1;
+    } else if (c == ',' || c == '\n') {
+      // received a comma, or the newline character at the end of the line:
+      // update the processing_values array with the temporary value
+      if (valueIndex < NUM_OF_VALUES_FROM_PROCESSING) {  // should always be the case, but double-check
+        processing_values[valueIndex] = tempValue * tempSign;
+      }
+      // get ready for the new data by resetting the temporary value and sign
+      tempValue = 0;
+      tempSign = 1;
+      if (c == ',') {
+        // move to dealing with the next entry in the processing_values array
+        valueIndex = valueIndex + 1;
+      } else {
+        // except when we reach the end of the line
+        // go back to the first entry in this case
+        valueIndex = 0;
+      }
+    }
+  }
+}
