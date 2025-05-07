@@ -5,6 +5,9 @@ PImage LilyPad1;
 PImage LilyPad2;
 PImage LilyPad3;
 PImage LilyPad4;
+PImage Nexus;
+
+PFont DynaPuff;
 
 Serial serialPort;
 
@@ -24,6 +27,7 @@ int spawnTimer = 0; //Keeps track of how long since enemy has spawned
 int spawnInterval = 30; //How fast enemies spawn
 
 ArrayList<Tower> towers;  //Holder for towers
+//int towerInfo [] = new int[NUM_OF_VALUES_FROM_ARDUINO]; //Holder to keep track of what lilypad to draw
 
 int nexusX, nexusY;
 int nexusHealth = 3;  //Initial health value
@@ -32,29 +36,37 @@ int nexusRadius = 50; //Area where damage can be taken
 boolean receiving = false;  //Is Processing receiving Arduino input? If yes, true. If no, false.
 boolean gameOver = false; //Is the game over (Nexus still has health)
 
-int startTime;  //Start time of current run
-int previousTime; //Holder for leaderboard sorting
+float startTime;  //Start time of current run
+float previousTime; //Holder for leaderboard sorting
 
 void setup() {
   Fly = loadImage("Fly.png");
   Fly.resize(50, 50);
 
-  LilyPad1 = loadImage("LilyPad1.png");
-  LilyPad1.resize(50, 50);
+  // LilyPad1 = loadImage("LilyPad1.png");
+  // LilyPad1.resize(50, 50);
 
-  LilyPad2 = loadImage("LilyPad2.png");
-  LilyPad2.resize(50, 50);
+  // LilyPad2 = loadImage("LilyPad2.png");
+  // LilyPad2.resize(50, 50);
 
-  LilyPad3 = loadImage("LilyPad3.png");
-  LilyPad3.resize(50, 50);
+  // LilyPad3 = loadImage("LilyPad3.png");
+  // LilyPad3.resize(50, 50);
 
   LilyPad4 = loadImage("LilyPad4.png");
   LilyPad4.resize(50, 50);
 
+  Nexus = loadImage("Nexus.png");
+  Nexus.resize(150, 150);
+  
+  DynaPuff = createFont("DynaPuff.ttf", 50);
+  
   size(800, 800);
   enemies = new ArrayList<Enemy>();
   towers = new ArrayList<Tower>();
 
+  //for (int i = 0; i < towerInfo.size; i++) {
+  //  towerInfo[i] = random(1,5);
+  //}
   for (int i = 0; i < leaderboard.length; i++) {
     leaderboard[i] = str(0);
   }
@@ -73,6 +85,9 @@ void draw() {
   }
   else if (!receiving && !gameOver) {
     background(#ff0000);
+    textFont(DynaPuff);
+    textAlign(CENTER,CENTER);
+     text("Guardian Geckos", width/2, height/7);
     if (serialPort.available() > 0) {
       String in = serialPort.readStringUntil(10);
       if (in != null && in.trim().equals("Start")) {
@@ -82,7 +97,7 @@ void draw() {
     }
   }
   else if (receiving && !gameOver) {
-    background(255);
+    background(#0f5e9c);
     stroke(255);
     fill(255);
     int m = millis();
@@ -120,12 +135,7 @@ void draw() {
     }
 
     //NEXUS
-    fill(0, 200, 255);
-    ellipse(nexusX, nexusY, nexusRadius*2, nexusRadius*2);
-    fill(255);
-    textAlign(CENTER);
-    textSize(12);
-    text("Nexus", nexusX, nexusY+4);
+    image(Nexus, nexusX - 75, nexusY - 75);
 
     //HEALTH INFO
     for (int i = 0; i < nexusHealth; i++) {
@@ -151,17 +161,17 @@ void draw() {
           processing_values[0] = 1;
           sendSerialData();
           receiving = false;
-          int timeElapsed = millis() - startTime;
+          float timeElapsed = millis() - startTime;
           updateLeaderboard(timeElapsed);
           gameOver = true;
         }
       }
     }
-    if (m>=30000) {
+    if ((m - startTime)>=30000) {
       spawnInterval = 0;
-    } else if (m>=20000) {
+    } else if ((m - startTime)>=20000) {
       spawnInterval = 10;
-    } else if (m>=10000) {
+    } else if ((m - startTime)>=10000) {
       spawnInterval = 20;
     }
     updateTowers();
@@ -191,7 +201,7 @@ Enemy spawnEnemy() {
 class Enemy {
   float x, y;
   float targetX, targetY;
-  float speed = 50;
+  float speed = 5;
   float dx, dy;
 
   Enemy(float startX, float startY, float tx, float ty) {
@@ -292,12 +302,12 @@ void heart(float x, float y, float size) {
   endShape(CLOSE);
 }
 
-void updateLeaderboard(int time) {
+void updateLeaderboard(float time) {
   for (int i = 0; i < leaderboard.length; i++) {
-    int currentTime = int(leaderboard[i]);
+    float currentTime = float(leaderboard[i]);
     if (currentTime < time) {
       previousTime = currentTime;
-      leaderboard[i] = str(time);
+      leaderboard[i] = str(time/1000);
       updateLeaderboard(previousTime);
       break;
     }
