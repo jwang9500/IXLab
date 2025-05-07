@@ -16,7 +16,11 @@ void loop() {
   // to send values to Processing assign the values you want to send
   // this is an example:
   if (PREV_STATE == LOW && CURR_STATE == HIGH) {
-    sending = true;
+    if (!sending) {
+      sending = true;
+      processing_values[0] = 0;
+      Serial.println("Start");
+    }
   }
   PREV_STATE = CURR_STATE;
 
@@ -87,9 +91,11 @@ void loop() {
 
   getSerialData();
 
-  if(processing_values[0] == 1) {
+  if (processing_values[0] == 1) {
     sending = false;
   }
+
+  delay(20);
 }
 
 void getSerialData() {
