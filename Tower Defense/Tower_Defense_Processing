@@ -8,7 +8,9 @@ PImage LilyPad4;
 
 Serial serialPort;
 
-int NUM_OF_VALUES_FROM_PROCESSING = 2;
+String leaderboard[] = new String[10];
+
+int NUM_OF_VALUES_FROM_PROCESSING = 1;
 int processing_values[] = new int[NUM_OF_VALUES_FROM_PROCESSING];
 
 int NUM_OF_VALUES_FROM_ARDUINO = 16;
@@ -28,6 +30,7 @@ int nexusHealth = 3;
 int nexusRadius = 50;
 
 boolean receiving = false;
+boolean gameOver = false;
 
 int startTime; //Start time of current run
 void setup() {
@@ -51,6 +54,10 @@ void setup() {
   enemies = new ArrayList<Enemy>();
   towers = new ArrayList<Tower>();
 
+  for (int i = 0; i < leaderboard.length; i++) {
+    leaderboard[i] = str(0);
+  }
+
   nexusX = width/2;
   nexusY = height/2;
 
@@ -59,7 +66,7 @@ void setup() {
 }
 
 void draw() {
-  if (!receiving) {
+  if (!receiving && !gameOver) {
     if (serialPort.available() > 0) {
       String in = serialPort.readStringUntil(10);
       if (in != null) {
@@ -68,7 +75,7 @@ void draw() {
       }
     }
   }
-  if (receiving) {
+  if (receiving && !gameOver) {
     background(255);
     stroke(255);
     fill(255);
@@ -135,17 +142,16 @@ void draw() {
         nexusHealth--;
         enemies.remove(i);
         if (nexusHealth <= 0) {
-          fill(#FF0000);
-          circle(width/2, height/2, 5000);
-          fill(0);
-          textSize(100);
-          text("Game Over!", width/2, height/2);
-          println("Game Over!");
+          // fill(#FF0000);
+          // circle(width/2, height/2, 5000);
+          // fill(0);
+          // textSize(100);
+          // text("Game Over!", width/2, height/2);
+          // println("Game Over!");
           processing_values[0] = 1;
-          int time = millis();
-          processing_values[1] = (time - startTime);
           sendSerialData();
           receiving = false;
+          gameOver = true;
           noLoop();
         }
       }
@@ -158,6 +164,36 @@ void draw() {
       spawnInterval = 20;
     }
     updateTowers();
+  }
+
+  if (gameOver) {
+    int timeElapsed = millis() - startTime;
+    for (int i = 0; i < leaderboard.length; i++) {
+      if (int(leaderboard[i]) < timeElapsed) {
+        leaderboard [i] = str(timeElapsed/1000);
+        break;
+      }
+    }
+    fill(#000000, 50);
+    rect(-50,-50, width+100, height+100);
+    fill(0);
+    textSize(30);
+    textAlign(CENTER, BOTTOM);
+    text("Leaderboard", width/2, height/7 - 50);
+    
+    int lineHeight = 50;
+    for (int i = 0; i<leaderboard.length; i++) {
+      text(leaderboard[i], width/2, height/7 + (i * lineHeight));
+    }
+    text("Press the button to try again!", width/2, height - 100);
+    
+    if (serialPort.available() > 0) {
+      String in = serialPort.readStringUntil(10);
+      if (in != null) {
+        receiving = true;
+        startTime = millis();
+      }
+    }
   }
 }
 
@@ -184,7 +220,7 @@ Enemy spawnEnemy() {
 class Enemy {
   float x, y;
   float targetX, targetY;
-  float speed = 5;
+  float speed = 50;
   float dx, dy;
 
   Enemy(float startX, float startY, float tx, float ty) {
