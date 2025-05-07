@@ -1,11 +1,13 @@
 import processing.serial.*;
 
+PImage Water;
 PImage Fly;
 PImage LilyPad1;
 PImage LilyPad2;
 PImage LilyPad3;
 PImage LilyPad4;
 PImage Nexus;
+PImage Start;
 
 PFont DynaPuff;
 
@@ -40,6 +42,11 @@ float startTime;  //Start time of current run
 float previousTime; //Holder for leaderboard sorting
 
 void setup() {
+  Water = loadImage("Water.png");
+  
+  Start = loadImage("Start.png");
+  Start.resize(int(width*0.9), int(height*0.9));
+
   Fly = loadImage("Fly.png");
   Fly.resize(50, 50);
 
@@ -53,13 +60,13 @@ void setup() {
   // LilyPad3.resize(50, 50);
 
   LilyPad4 = loadImage("LilyPad4.png");
-  LilyPad4.resize(50, 50);
+  LilyPad4.resize(100, 100);
 
   Nexus = loadImage("Nexus.png");
   Nexus.resize(150, 150);
-  
+
   DynaPuff = createFont("DynaPuff.ttf", 50);
-  
+
   size(800, 800);
   enemies = new ArrayList<Enemy>();
   towers = new ArrayList<Tower>();
@@ -82,12 +89,14 @@ void draw() {
   if (gameOver) {
     showGameOver();
     return;
-  }
-  else if (!receiving && !gameOver) {
-    background(#ff0000);
+  } else if (!receiving && !gameOver) {
+    background(255);
+    imageMode(CENTER);
+    image(Start, width/2, height/2+50);
     textFont(DynaPuff);
-    textAlign(CENTER,CENTER);
-     text("Guardian Geckos", width/2, height/7);
+    textAlign(CENTER, CENTER);
+    fill(0);
+    text("Guardian Geckos", width/2, height/19);
     if (serialPort.available() > 0) {
       String in = serialPort.readStringUntil(10);
       if (in != null && in.trim().equals("Start")) {
@@ -95,12 +104,12 @@ void draw() {
         startTime = millis();
       }
     }
-  }
-  else if (receiving && !gameOver) {
-    background(#0f5e9c);
+  } else if (receiving && !gameOver) {
+    image(Water, 0, 0);
     stroke(255);
     fill(255);
     int m = millis();
+    imageMode(CORNER);
 
     //for (int i = 0; i < BREAKPOINT; i++) {
     //  for (int j = 0; j < NUM_SPACES; j++) {
@@ -260,6 +269,7 @@ class Tower {
   }
 
   void display() {
+    imageMode(CENTER);
     //int r = int(random(1, 5));
     //if (r == 1) {
     //  image(LilyPad1, x - 25, y - 25);
@@ -268,12 +278,13 @@ class Tower {
     //} else if (r ==3 ) {
     //  image(LilyPad3, x - 25, y - 25);
     //} else {
-    image(LilyPad4, x - 25, y - 25);
+    image(LilyPad4, x, y);
     //}
 
     noFill();
     stroke(0, 255, 0, 100);
     ellipse(x, y, range*2, range*2);
+    imageMode(CORNER);
   }
 
   void shoot(ArrayList<Enemy> enemies) {
@@ -303,16 +314,21 @@ void heart(float x, float y, float size) {
 }
 
 void updateLeaderboard(float time) {
+  time /= 1000.0; // convert to seconds
   for (int i = 0; i < leaderboard.length; i++) {
     float currentTime = float(leaderboard[i]);
-    if (currentTime < time) {
-      previousTime = currentTime;
-      leaderboard[i] = str(time/1000);
-      updateLeaderboard(previousTime);
+
+    if (time > currentTime) {
+      // shift lower scores down
+      for (int j = leaderboard.length - 1; j > i; j--) {
+        leaderboard[j] = leaderboard[j - 1];
+      }
+      leaderboard[i] = nf(time, 0, 2); // format to 2 decimal places
       break;
     }
   }
 }
+
 
 void showGameOver() {
   // fill(#000000, 50);
@@ -333,7 +349,7 @@ void showGameOver() {
     if (in != null && in.trim().equals("Start")) {
       restartGame();
     }
-  } 
+  }
 }
 
 void restartGame() {
